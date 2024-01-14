@@ -29,8 +29,8 @@
             <RowDefinition Height="10"></RowDefinition>
         </Grid.RowDefinitions>
 
-        <Image x:Name="ImageViewer" Grid.Column="1" Grid.ColumnSpan="8" Grid.Row="2" Grid.RowSpan="4" Source="/NotFound.png" Margin="0,0,0,37" />
-        <Label Name="labelImgNumber" Grid.Column="1" Grid.ColumnSpan="4" Grid.Row="1" Content="11/11" Background="Transparent" Foreground="Black" FontWeight="Bold" Margin="0,0,154,109" Grid.RowSpan="2"/>
+        <Image x:Name="ImageViewer" Grid.Column="1" Grid.ColumnSpan="8" Grid.Row="2" Grid.RowSpan="4" Source="/NotFound.png" />
+        <Label Name="labelImgNumber" Grid.Column="1" Grid.ColumnSpan="4" Grid.Row="1" Content="11/11" Background="Transparent" Foreground="Black" FontWeight="Bold" Grid.RowSpan="2"/>
 
         <Button x:Name="buttonDownload" Grid.Column="6" Grid.Row="5" Content="Download" Click="buttonDownload_Click" Grid.ColumnSpan="2" Margin="1,0,78,0"/>
         <Button x:Name="buttonBack" Grid.Column="7" Grid.Row="5" Content="&lt;-" Click="buttonBack_Click" Grid.ColumnSpan="2" Margin="0,0,78,0"/>

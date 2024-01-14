@@ -2,10 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Xml;
 
 namespace ScreenshotViewer
@@ -13,22 +18,55 @@ namespace ScreenshotViewer
     public class ImagLoader
     {
         public string CharLetters { get; private set; }
-        public string CurentImageAlphanumberValue { get; private set; }
+        public string CurrentImageAlphanumberValue { get; private set; }
         public string DefoultUrl { get; private set; }
         public string BaseUrl { get; private set; }
         public string CurrentImageUrl { get; private set; }
-        public int CurentImageNumber { get; private set; }
+        public int CurrentImageNumber { get; private set; }
 
+        const string downloadFolder = "img/";
 
+        public ImagLoader(int curentImageNumber)
+        {
+            CurrentImageNumber = curentImageNumber;
+            CharLetters = "abcdefghijklmnopqrstuvwxyz0123456789";
+            CurrentImageAlphanumberValue = NumberToLetter(CurrentImageNumber);
+            DefoultUrl = @"pack://application:,,,/Images/NotFound.png";
+            BaseUrl = "https://prnt.sc/";
+            CurrentImageUrl = DefoultUrl;
+        }
+        public ImagLoader(
+            int curentImageNumber,
+            string charLetters)
+        {
+            CurrentImageNumber = curentImageNumber;
+            CharLetters = charLetters;
+            CurrentImageAlphanumberValue = NumberToLetter(CurrentImageNumber);
+            DefoultUrl = @"pack://application:,,,/Images/NotFound.png";
+            BaseUrl = "https://prnt.sc/";
+            CurrentImageUrl = DefoultUrl;
+        }
+        public ImagLoader(
+            int curentImageNumber,
+            string charLetters,
+            string defoultUrl = @"pack://application:,,,/Images/NotFound.png")
+        {
+            CurrentImageNumber = curentImageNumber;
+            CharLetters = charLetters;
+            CurrentImageAlphanumberValue = NumberToLetter(CurrentImageNumber);
+            DefoultUrl = defoultUrl;
+            BaseUrl = "https://prnt.sc/";
+            CurrentImageUrl = defoultUrl;
+        }
         public ImagLoader(
             int curentImageNumber, 
             string charLetters = "abcdefghijklmnopqrstuvwxyz0123456789",
             string defoultUrl = @"pack://application:,,,/Images/NotFound.png",
             string baseUrl = "https://prnt.sc/")
         {
-            CurentImageNumber = curentImageNumber;
+            CurrentImageNumber = curentImageNumber;
             CharLetters = charLetters;
-            CurentImageAlphanumberValue = NumberToLetter(CurentImageNumber);
+            CurrentImageAlphanumberValue = NumberToLetter(CurrentImageNumber);
             DefoultUrl = defoultUrl;
             BaseUrl = baseUrl;
             CurrentImageUrl = defoultUrl;
@@ -38,11 +76,11 @@ namespace ScreenshotViewer
         /// Increaseing the property CurentImageNumber
         /// </summary>
         /// <param name="amount"></param>
-        public void IncreaseCurentImageNumber(int amount = 1)
+        private void IncreaseCurentImageNumber(int amount = 1)
         {
             if (amount > 0)
             {
-                CurentImageNumber += amount;
+                CurrentImageNumber += amount;
             }
         }
 
@@ -50,15 +88,15 @@ namespace ScreenshotViewer
         /// Decreaseing the property CurentImageNumber
         /// </summary>
         /// <param name="amount"></param>
-        public void DecreaseCurentImageNumber(int amount = 1)
+        private void DecreaseCurentImageNumber(int amount = 1)
         {
             if (amount < 0)
             {
                 amount *= -1;
             }
-            if ((CurentImageNumber - amount) >= 0)
+            if ((CurrentImageNumber - amount) >= 0)
             {
-                CurentImageNumber -= amount;
+                CurrentImageNumber -= amount;
             }
         }
 
@@ -66,13 +104,13 @@ namespace ScreenshotViewer
         /// Set the property of CurentImageNumber
         /// </summary>
         /// <param name="number"></param>
-        public void SetCurentImageNumber(int number)
+        private void SetCurentImageNumber(int number)
         {
             if (number < 0)
             {
                 number *= -1;
             }
-            CurentImageNumber = number;
+            CurrentImageNumber = number;
         }
 
         /// <summary>
@@ -125,35 +163,44 @@ namespace ScreenshotViewer
         /// <returns></returns>
         public string GetSiteUrl()
         {
-            CurentImageAlphanumberValue = NumberToLetter(CurentImageNumber);
-            string url = BaseUrl + CurentImageAlphanumberValue;
+            CurrentImageAlphanumberValue = NumberToLetter(CurrentImageNumber);
+            string url = BaseUrl + CurrentImageAlphanumberValue;
             return url;
         }
 
-        public async void IncreaseImageUrl(int amount = 1)
+        private async Task<bool> SetCurrentImageUrl()
+        {
+            string siteUrl = GetSiteUrl();
+            CurrentImageUrl = await GetImageUrl(siteUrl);
+            return true;
+        }
+
+        public async Task<bool> IncreaseImageUrl(int amount = 1)
         {
             IncreaseCurentImageNumber(amount);
-            string siteUrl = GetSiteUrl();
-            CurrentImageUrl = await GetImageUrl(siteUrl);
+            await SetCurrentImageUrl();
+            return true;
         }
 
-        public async void DecreaseImageUrl(int amount = 1)
+        public async Task<bool> DecreaseImageUrl(int amount = 1)
         {
             DecreaseCurentImageNumber(amount);
-            string siteUrl = GetSiteUrl();
-            CurrentImageUrl = await GetImageUrl(siteUrl);
+            await SetCurrentImageUrl();
+            return true;
         }
 
-        public async void SetImageUrl(int number)
+        public async Task<bool> SetImageUrl(int number)
         {
             SetCurentImageNumber(number);
-            string siteUrl = GetSiteUrl();
-            CurrentImageUrl = await GetImageUrl(siteUrl);
+            await SetCurrentImageUrl();
+            return true;
         }
 
         public async Task<string> GetImageUrl(string url)
         {
             string imageUrl = await GetImageUrlFromUrl(url);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
 
             return imageUrl != null ? imageUrl : DefoultUrl;
         }
@@ -194,6 +241,42 @@ namespace ScreenshotViewer
             catch
             {
                 return null;
+            }
+        }
+
+        private string GetImageName(string url)
+        {
+            if (CurrentImageUrl == DefoultUrl)
+            {
+                return null;
+            }
+            string[] segments = url.Split('/');
+            string name = CurrentImageNumber + "_" + segments[segments.Length - 1];
+            return name;
+        }
+
+        public async Task<bool> DownloadAndSaveImageAsync()
+        {
+            if (CurrentImageUrl == DefoultUrl)
+            {
+                return false;
+            }
+            string fileDownload = downloadFolder + GetImageName(CurrentImageUrl);
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    HttpResponseMessage response = await client.GetAsync(CurrentImageUrl);
+                    response.EnsureSuccessStatusCode();
+                    byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
+                    string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileDownload);
+                    File.WriteAllBytes(filePath, imageBytes);
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }

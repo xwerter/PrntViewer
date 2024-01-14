@@ -20,7 +20,7 @@ namespace ScreenshotViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        ImagLoader il = new ImagLoader(666);
+        ImagLoader imageLoader = new ImagLoader(666);
 
         public MainWindow()
         {
@@ -30,41 +30,37 @@ namespace ScreenshotViewer
 
         private async void buttonForward_Click(object sender, RoutedEventArgs e)
         {
-            il.IncreaseImageUrl();
-
+            await imageLoader.IncreaseImageUrl();
             UpdateContent();
-
         }
 
         private async void buttonBack_Click(object sender, RoutedEventArgs e)
         {
-            il.DecreaseImageUrl();
-
+            await imageLoader.DecreaseImageUrl();
             UpdateContent();
         }
 
-        private void buttonDownload_Click(object sender, RoutedEventArgs e)
+        private async void buttonDownload_Click(object sender, RoutedEventArgs e)
         {
-
+            await imageLoader.DownloadAndSaveImageAsync();
         }
 
-        private void buttonSerch_Click(object sender, RoutedEventArgs e)
+        private async void buttonSerch_Click(object sender, RoutedEventArgs e)
         {
             int number;
             int.TryParse(textBoxSearch.Text, out number);
             if (number != 0)
             {
-                il.SetImageUrl(number);
+                await imageLoader.SetImageUrl(number);
                 UpdateContent();
             }
-            
         }
 
         private void UpdateContent()
         {
-            labelImgNumber.Content = $"{il.CurentImageNumber}/{il.CurentImageAlphanumberValue}";
+            labelImgNumber.Content = $"{imageLoader.CurrentImageNumber}/{imageLoader.CurrentImageAlphanumberValue}";
 
-            var bitsrc = new BitmapImage(new Uri(il.CurrentImageUrl));
+            var bitsrc = new BitmapImage(new Uri(imageLoader.CurrentImageUrl));
             ImageViewer.Source = bitsrc;
         }
     }
